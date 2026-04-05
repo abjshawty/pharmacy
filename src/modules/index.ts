@@ -1,11 +1,15 @@
 import { Elysia } from "elysia";
-import { post } from './post';
 import openapi from "@elysiajs/openapi";
 import { version } from "package.json";
-// import { authPlugin } from './auth'; // Optional: uncomment to enable auth
+import { authPlugin } from './auth';
+import { user } from './user';
+import { pharmacy } from './pharmacy';
+import { medication } from './medication';
 
 export default new Elysia({ prefix: 'v' + version.split(".")[0] })
     .use(openapi())
-    // .use(authPlugin)  // Optional: exposes /v0/auth/* endpoints
-    .use(post)
+    .use(authPlugin)
+    .use(user)
+    .use(pharmacy)
+    .use(medication)
     .get('/', (ctx) => ctx.redirect("/openapi"));
