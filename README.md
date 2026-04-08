@@ -72,7 +72,7 @@ apps/
    bun run dev
    ```
 
-The server starts on `http://localhost:3000`. Swagger UI is available at `http://localhost:3000/openapi`.
+The server starts on `http://localhost:3000`. Swagger UI is available at `http://localhost:3000/v1/openapi`.
 
 ## Environment Variables
 
