@@ -1,10 +1,13 @@
 import { betterAuth } from "better-auth";
-import Database from "better-sqlite3";
+import { Database } from "bun:sqlite";
 
 const db = new Database(process.env.AUTH_DATABASE_URL ?? "auth.db");
 
 export const auth = betterAuth({
-    database: db,
+    database: {
+        type: "sqlite",
+        db,
+    },
     emailAndPassword: {
         enabled: true,
     },
