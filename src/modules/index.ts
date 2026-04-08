@@ -12,4 +12,4 @@ export default new Elysia({ prefix: 'v' + version.split(".")[0] })
     .use(user)
     .use(pharmacy)
     .use(medication)
-    .get('/', (ctx) => ctx.redirect("/openapi"));
+    .get('/', (ctx) => ctx.redirect("/v" + version.split(".")[0] + "/openapi"));
