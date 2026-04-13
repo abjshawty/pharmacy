@@ -1,3 +1,6 @@
+-- Reference schema only. The executable source of truth is init-db.ts.
+-- Keep these two files in sync when making schema changes.
+
 -- User table
 CREATE TABLE IF NOT EXISTS "user" (
     id TEXT PRIMARY KEY,
