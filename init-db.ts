@@ -20,6 +20,7 @@ db.run(`
 db.run(`
   CREATE TABLE IF NOT EXISTS "session" (
     id TEXT PRIMARY KEY,
+    token TEXT UNIQUE NOT NULL,
     expiresAt TIMESTAMP NOT NULL,
     ipAddress TEXT,
     userAgent TEXT,
@@ -35,7 +36,7 @@ db.run(`
   CREATE TABLE IF NOT EXISTS "account" (
     id TEXT PRIMARY KEY,
     accountId TEXT NOT NULL,
-    providerAccountId TEXT NOT NULL,
+    providerAccountId TEXT,
     providerId TEXT NOT NULL,
     userId TEXT NOT NULL,
     accessToken TEXT,

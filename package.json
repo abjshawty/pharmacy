@@ -50,7 +50,7 @@
     "dev:debug": "bun --watch --inspect src/index.ts",
     "dev:watch": "bun --hot src/index.ts",
     "setup": "convex dev",
-    "setup:full": "bun install && convex dev",
+    "setup:full": "bun install && bun init-db.ts && convex dev",
     "seed": "npx convex run seed:run"
   }
 }
