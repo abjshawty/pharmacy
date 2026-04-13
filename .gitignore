@@ -42,3 +42,4 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Convex files
 # You should commit convex/_generated if you want to share your Convex schema with other developers
 convex/_generated
+.claude

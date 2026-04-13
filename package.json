@@ -52,6 +52,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "setup:full": "bun install && bun init-db.ts && convex dev",
-    "seed": "npx convex run seed:run"
+    "seed": "convex run seed:run",
+    "studio": "convex dashboard"
   }
 }
