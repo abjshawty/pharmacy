@@ -7,6 +7,8 @@ import { pharmacy } from './pharmacy';
 import { medication } from './medication';
 import { inventory } from './inventory';
 import { geolocation } from './geolocation';
+import { cart } from './cart';
+import { order } from './order';
 
 export default new Elysia({ prefix: 'v' + version.split(".")[0] })
     .use(openapi())
@@ -16,4 +18,6 @@ export default new Elysia({ prefix: 'v' + version.split(".")[0] })
     .use(medication)
     .use(inventory)
     .use(geolocation)
+    .use(cart)
+    .use(order)
     .get('/', (ctx) => ctx.redirect("/v" + version.split(".")[0] + "/openapi"));
