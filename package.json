@@ -9,14 +9,15 @@
   },
   "module": "src/index.ts",
   "dependencies": {
+    "@better-auth/kysely-adapter": "^1.5.5",
     "@elysiajs/openapi": "^1.4.14",
     "better-auth": "^1.5.5",
-    "better-sqlite3": "^12.8.0",
     "convex": "^1.31.6",
-    "elysia": "^1.4.22"
+    "elysia": "^1.4.22",
+    "kysely": "^0.28.15",
+    "kysely-bun-worker": "^1.2.1"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "latest"
   },
   "peerDependencies": {
@@ -48,7 +49,8 @@
     "dev:debug": "bun --watch --inspect src/index.ts",
     "dev:watch": "bun --hot src/index.ts",
     "setup": "convex dev",
-    "setup:full": "bun install && convex dev",
+    "typecheck": "tsc --noEmit",
+    "setup:full": "bun install && bun init-db.ts && convex dev",
     "seed": "npx convex run seed:run"
   }
 }

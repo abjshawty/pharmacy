@@ -5,6 +5,8 @@ import { authPlugin } from './auth';
 import { user } from './user';
 import { pharmacy } from './pharmacy';
 import { medication } from './medication';
+import { inventory } from './inventory';
+import { geolocation } from './geolocation';
 
 export default new Elysia({ prefix: 'v' + version.split(".")[0] })
     .use(openapi())
@@ -12,4 +14,6 @@ export default new Elysia({ prefix: 'v' + version.split(".")[0] })
     .use(user)
     .use(pharmacy)
     .use(medication)
+    .use(inventory)
+    .use(geolocation)
     .get('/', (ctx) => ctx.redirect("/v" + version.split(".")[0] + "/openapi"));

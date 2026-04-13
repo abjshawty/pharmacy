@@ -1,13 +1,16 @@
 import { betterAuth } from "better-auth";
-import { Database } from "bun:sqlite";
+import { kyselyAdapter } from "@better-auth/kysely-adapter";
+import { BunSqliteDialect } from "kysely-bun-worker/normal";
+import { Kysely } from "kysely";
 
-const db = new Database(process.env.AUTH_DATABASE_URL ?? "auth.db");
+const kysely = new Kysely({
+    dialect: new BunSqliteDialect({
+        url: process.env.AUTH_DATABASE_URL ?? "auth.db",
+    }),
+});
 
 export const auth = betterAuth({
-    database: {
-        type: "sqlite",
-        db,
-    },
+    database: kyselyAdapter(kysely),
     emailAndPassword: {
         enabled: true,
     },
