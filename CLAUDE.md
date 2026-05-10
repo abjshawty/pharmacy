@@ -1,106 +1,117 @@
 # CLAUDE.md
 
-## Project Overview
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-A modular backend server template built with **Bun**, **Elysia**, and **Convex**. Designed as a fast, typesafe, and extensible API foundation.
-
-## Tech Stack
-
-- **Runtime**: Bun (>= 1.3.6)
-- **Framework**: Elysia (TypeScript, TypeBox validation, OpenAPI plugin)
-- **Database**: Convex (serverless, cloud-managed)
-- **Language**: TypeScript (strict mode, ESNext)
-
-## Project Structure
-
-```
-src/
-  index.ts           # Entry point — starts server on port 3000
-  client.ts          # Convex HTTP client (requires CONVEX_URL env var)
-  modules/
-    index.ts         # Server init, mounts modules, API versioning (v0)
-    post/
-      index.ts       # Route definitions for Post CRUD
-      model.ts       # TypeBox schemas (request/response validation)
-      service.ts     # Business logic, delegates to Convex
-convex/
-  schema.ts          # Database schema (posts table)
-  post.ts            # Convex queries and mutations
-  _generated/        # Auto-generated, git-ignored
-```
-
-## Key Conventions
-
-- **API versioning**: prefix derived from `package.json` version (currently `v0`)
-- **Module pattern**: each feature is an Elysia plugin mounted in `src/modules/index.ts`
-- **Service layer**: abstract class with static methods in `service.ts`
-- **Validation**: all request/response shapes defined in `model.ts` using TypeBox
-- **Path aliases**: `@/*` → project root, `@modules/*` → `src/modules/`
-
-## API Endpoints
-
-Base URL: `http://localhost:3000/v0/`
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/` | Redirects to `/openapi` (Swagger UI) |
-| POST | `/v0/post` | Create post |
-| GET | `/v0/post` | List posts (max 10) |
-| GET | `/v0/post/:id` | Get single post |
-| PUT | `/v0/post/:id` | Update post |
-| DELETE | `/v0/post/:id` | Delete post |
-
-## Environment
-
-Copy `.env.example` to `.env`. Required variables:
-- `CONVEX_URL` — Convex deployment URL (obtained after `bun run setup`)
-- `HOST`, `PORT`, `CORS_ORIGINS` — optional overrides
-
-## Scripts
+## Commands
 
 ```bash
-bun run dev          # Watch mode
-bun run dev:watch    # Hot reload
-bun run dev:debug    # With inspector
-bun run start        # Production
-bun run setup        # Init Convex dev environment
-bun run setup:full   # bun install + setup
+# Development (requires two terminals)
+bun run setup        # Terminal 1: start Convex dev backend
+bun run dev:watch    # Terminal 2: hot-reload Elysia server
+
+# Other dev modes
+bun run dev          # Watch mode (slightly slower reload)
+bun run dev:debug    # Watch mode + Node inspector
+
+# Testing
+bun test                           # Run all tests
+bun test src/tests/geo.test.ts     # Run a single test file
+
+# Type checking
+bun run typecheck
+
+# Data
+bun run seed         # Seed Convex with sample pharmacies + medications
+bun run studio       # Open Convex dashboard in browser
+
+# Setup
+bun run setup:full   # bun install + init auth DB + start Convex dev
 ```
 
-## Auth Module (optional)
+**Swagger UI** is live at `http://localhost:3000/v1/openapi` when the server is running.
 
-Built with [Better Auth](https://better-auth.com). Disabled by default — opt-in by uncommenting two lines.
+## Architecture
 
-**Enable auth:**
-1. Uncomment two lines in `src/modules/index.ts` (the import and the `.use(authPlugin)`)
-2. Set env vars: `BETTER_AUTH_SECRET` (required), `BETTER_AUTH_URL`, `AUTH_DATABASE_URL`
+Request path: `HTTP → Elysia router → Module → Service → Convex HTTP client → Convex backend`
 
-**Auth endpoints** (all at `/v0/auth/*`, managed by Better Auth):
-- `POST /v0/auth/sign-up/email`
-- `POST /v0/auth/sign-in/email`
-- `POST /v0/auth/sign-out`
-- `GET  /v0/auth/session`
+Every feature follows a strict **three-file module** pattern under `src/modules/<name>/`:
 
-**Protecting routes** — import `authGuard` into any module and use the `auth: true` macro:
+- **`index.ts`** — Elysia plugin with routes, TypeBox validation, and auth macros
+- **`model.ts`** — TypeBox schema namespace (request bodies, query params, response shapes)
+- **`service.ts`** — Abstract class with static methods; all DB calls go through here
+
+Modules are mounted in `src/modules/index.ts`. API version is derived from `package.json` major (currently `v1`).
+
+**Current modules:** `auth`, `user`, `pharmacy`, `medication`, `inventory`, `geolocation`, `post` (legacy template)
+
+### Convex integration
+
+`src/client.ts` exports a single `convex` HTTP client. All service methods call it with type-safe RPC:
+
+```typescript
+import { convex } from "@/src/client";
+import { api } from "@/convex/_generated/api";
+
+static async list(query: Model.listQuery) {
+    return await convex.query(api.pharmacy.list, { city: query.city });
+}
+```
+
+`convex/_generated/` is auto-generated — never edit it. The source of truth is `convex/schema.ts` (defines all tables + indexes) and `convex/<module>.ts` (query/mutation implementations).
+
+### Auth guard
+
+Routes opt into auth with the `auth: true` macro. Add `authGuard` to any module:
+
 ```typescript
 import { authGuard } from "@modules/auth";
 
-export const myModule = new Elysia()
+export const myModule = new Elysia({ prefix: "/thing" })
     .use(authGuard)
-    .get("/profile", ({ user }) => user, { auth: true });
+    .get("/", () => Service.list())                          // public
+    .post("/", ({ body }) => Service.create(body), {
+        auth: true,   // returns 401 if no valid session
+        body: Model.createBody,
+    });
 ```
 
-**Storage**: SQLite file (`auth.db` by default, git-ignored). Set `AUTH_DATABASE_URL` to change path.
+The `user` and `session` objects are automatically derived from request headers and available in route handlers when `auth: true` is set.
 
-**Extending**: configure OAuth providers, 2FA, magic links, etc. in `src/modules/auth/auth.ts`.
+**Auth endpoints** (managed entirely by Better Auth, not hand-written):
+- `POST /v1/auth/sign-up/email`
+- `POST /v1/auth/sign-in/email`
+- `POST /v1/auth/sign-out`
+- `GET  /v1/auth/session`
+
+Auth storage is a SQLite file (`auth.db`, git-ignored). Configure OAuth, 2FA, etc. in `src/modules/auth/auth.ts`.
+
+### Geolocation utilities
+
+`convex/lib/geo.ts` exports two testable pure functions used by the pharmacy service:
+- `haversineKm(lat1, lon1, lat2, lon2)` — distance in km between two coordinates
+- `isOpenNow(hours)` — whether a pharmacy is open at current time
+
+## Environment
+
+Copy `.env.example` to `.env`. Required:
+
+```env
+CONVEX_URL=https://<deployment>.convex.cloud   # from `bun run setup`
+BETTER_AUTH_SECRET=<random-string>
+```
+
+Optional overrides: `HOST`, `PORT`, `CORS_ORIGINS`, `BETTER_AUTH_URL`, `AUTH_DATABASE_URL`
+
+Later phases add: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `GOOGLE_CLOUD_VISION_API_KEY`
 
 ## Adding a New Module
 
-1. Create `src/modules/<name>/` with `index.ts`, `model.ts`, `service.ts`
-2. Register the module in `src/modules/index.ts`
-3. Add corresponding Convex functions in `convex/<name>.ts`
-4. Update `convex/schema.ts` if new tables are needed
+1. Create `src/modules/<name>/` with `index.ts`, `model.ts`, `service.ts` following the three-file pattern
+2. Add the corresponding Convex functions in `convex/<name>.ts`
+3. Update `convex/schema.ts` if new tables are needed (add indexes for any field used in `.filter()` or `.withIndex()`)
+4. Mount the plugin in `src/modules/index.ts`
 
-## Planned Plugins
+## Path Aliases
 
-Auth (Better-Auth), Payment (Stripe), Queue (Kafka), Storage (S3), Cache (Redis), Notifications (Resend/Twilio), Analytics (PostHog), Security, Logging, Monitoring (Sentry)
+- `@/*` → project root
+- `@modules/*` → `src/modules/`
