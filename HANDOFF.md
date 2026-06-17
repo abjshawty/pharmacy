@@ -4,18 +4,17 @@ Snapshot for resuming on a different machine. Pairs with **[PLAN.md](PLAN.md)**
 (the full design + all locked decisions). Read PLAN.md first; this file is the
 "where we are / how to resume" layer on top of it.
 
-Last updated: 2026-06-16. Single commit on `main`: `b082ee2` (Phase 0 scaffold).
+Last updated: 2026-06-17. Phase 0 scaffold committed (`b082ee2`); the map-render
+verification + Windows toolchain fixes below are **working-tree changes, not yet
+committed**.
 
 ---
 
 ## TL;DR status
 
-- **Phase 0 (scaffold) code is written and committed.** Navigation, deps, and a
-  MapLibre map screen centered on Abidjan all exist and **type-check clean**
-  (`bunx tsc --noEmit`).
-- **The map has NOT yet been seen rendering on a device.** That's the Phase 0
-  exit criterion and it's still unverified — we got blocked on Android tooling,
-  not on code.
+- **Phase 0 is COMPLETE.** The MapLibre map was **verified rendering on a
+  physical device** (OpenFreeMap tiles, Abidjan at zoom 14, Map/On-Duty tabs) on
+  2026-06-17. The Android tooling that blocked this is now set up (see below).
 - **Phases 1–4 are not started.** Convex backend is **not initialized** (no
   `convex/` folder, no schema).
 
@@ -39,12 +38,20 @@ Last updated: 2026-06-16. Single commit on `main`: `b082ee2` (Phase 0 scaffold).
   ```
 - Old template screens (`index.tsx`, `explore.tsx`) deleted.
 
+- Route fix: the `(tabs)` group had no index route, so launching at `/`
+  ("`pharmacy:///`") hit Expo Router's "Unmatched Route" 404. Renamed
+  `(tabs)/map.tsx` → `(tabs)/index.tsx` (and the `Tabs.Screen name` in
+  `(tabs)/_layout.tsx` from `"map"` → `"index"`) so the map is the default tab.
+- Deleted unused template leftovers `src/components/app-tabs.tsx` +
+  `app-tabs.web.tsx` (nothing imported them; they referenced the deleted
+  `/explore` route and were the only `tsc` errors).
+
 ## What's NOT done
 
-- [ ] **Verify the map renders on a device/emulator** (Phase 0 exit criterion).
 - [ ] Phase 1 — Convex: `npx convex dev` to init, then write `convex/schema.ts`
       (schema is already drafted in PLAN.md) + seed data.
 - [ ] Phases 2–4 — queries, location wiring, on-duty view, polish.
+- [ ] Commit the working-tree changes above (map verified + route/cleanup).
 
 ---
 
@@ -52,13 +59,25 @@ Last updated: 2026-06-16. Single commit on `main`: `b082ee2` (Phase 0 scaffold).
 
 Prereqs to install first (none of these travel in git):
 - **Bun** (package manager / scripts)
-- **JDK** — 17 is the RN-blessed version; 21 also works with the project's
-  Gradle 9.3.1. Set `JAVA_HOME`.
-- **Android SDK** with: `platform-tools`, `build-tools;34.0.0`,
-  `platforms;android-34`, **`emulator`** + a **system image** (e.g.
-  `system-images;android-34;google_apis;x86_64`) — OR a physical device with
-  USB debugging. Set `ANDROID_HOME` / `ANDROID_SDK_ROOT` to the SDK path and add
-  `platform-tools` + `emulator` to `PATH`.
+- **JDK 17 is required, not just "blessed".** RN's Gradle plugin forces a
+  Java-17 toolchain (`jvmToolchain(17)`). If *only* JDK 21 is installed, Gradle
+  9.3.1 tries to auto-download a 17 via the bundled Foojay resolver (v0.5.0),
+  which references `JvmVendorSpec.IBM_SEMERU` — a constant Gradle 9.3 removed —
+  and the build dies with `NoSuchFieldError`. **Fix:** install a JDK 17 (e.g.
+  `winget install EclipseAdoptium.Temurin.17.JDK`) so Gradle finds it locally and
+  never invokes the broken downloader. You can still run the daemon on JDK 21;
+  pin the 17 for the toolchain in your **global** `~/.gradle/gradle.properties`
+  (survives `expo prebuild --clean`, unlike `android/`):
+  `org.gradle.java.installations.paths=C:\\Program Files\\Eclipse Adoptium\\jdk-17...`
+- **Android SDK** with: `platform-tools`, `platforms;android-36`,
+  `build-tools;36.0.0`, **`ndk;27.1.12297006`**, **`cmake;3.22.1`** (the NDK +
+  CMake are needed because `newArchEnabled=true` compiles native C++ from
+  source) — plus a physical device with USB debugging, OR `emulator` + a system
+  image. Set `ANDROID_HOME` / `ANDROID_SDK_ROOT` (user scope) and add
+  `platform-tools` to `PATH`. If a stale Gradle daemon was started before
+  `ANDROID_HOME` existed, it caches "SDK location not found" — write
+  `android/local.properties` (`sdk.dir=...`) and/or `gradlew --stop`, then
+  rebuild.
 
 Then:
 ```bash

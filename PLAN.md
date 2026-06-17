@@ -19,7 +19,7 @@ populated later via scraping; the POC runs on seeded mock data.
 ## Key constraints & decisions
 
 - **MapLibre is a native module.** `@maplibre/maplibre-react-native`
-  (currently v10.x, the standalone fork of rnmapbox) ships an Expo config
+  (v11.x, the standalone fork of rnmapbox) ships an Expo config
   plugin, but it is **not part of the Expo SDK**. After adding the plugin to
   `app.json` you must rebuild with custom native code. This means a **dev
   build via `expo-dev-client`** (or EAS Build) — it will **not** run in plain
