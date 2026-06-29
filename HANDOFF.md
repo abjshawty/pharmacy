@@ -21,7 +21,14 @@ committed**.
   `convex/seed.ts` populated **17 pharmacies across 11 communes + 11 duty
   shifts** for the current Sat→Sat window. `tsc` clean. These are uncommitted
   working-tree changes.
-- **Phases 2–4 are not started** (queries, location wiring, on-duty view).
+- **Phase 2 (queries) is COMPLETE.** `convex/pharmacies.ts`
+  (`nearestPharmacies` — haversine sort, limit 20; `pharmaciesInBounds` —
+  by_lat range scan + lng filter) and `convex/onDuty.ts` (`onDutyNow` —
+  by_window scan joined to pharmacies). Duty-window math extracted to the
+  shared `convex/dutyWindow.ts`. All three verified against the seed; `tsc`
+  clean. Uncommitted working-tree changes.
+- **Phases 3–4 are not started** (location wiring + map markers, on-duty view).
+  No Convex client wiring in the app yet (`ConvexProvider` not added).
 
 ---
 

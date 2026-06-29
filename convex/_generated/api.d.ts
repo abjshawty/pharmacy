@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as dutyWindow from "../dutyWindow.js";
+import type * as onDuty from "../onDuty.js";
+import type * as pharmacies from "../pharmacies.js";
 import type * as seed from "../seed.js";
 
 import type {
@@ -17,6 +20,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  dutyWindow: typeof dutyWindow;
+  onDuty: typeof onDuty;
+  pharmacies: typeof pharmacies;
   seed: typeof seed;
 }>;
 
