@@ -27,8 +27,15 @@ committed**.
   by_window scan joined to pharmacies). Duty-window math extracted to the
   shared `convex/dutyWindow.ts`. All three verified against the seed; `tsc`
   clean. Uncommitted working-tree changes.
-- **Phases 3–4 are not started** (location wiring + map markers, on-duty view).
-  No Convex client wiring in the app yet (`ConvexProvider` not added).
+- **Phase 3 (map & location) is COMPLETE and verified on an emulator.**
+  `ConvexProvider` wired in `src/app/_layout.tsx`. The map (`(tabs)/index.tsx`)
+  requests foreground location (5s timeout → Abidjan fallback), fires
+  `nearestPharmacies` for the priority load + debounced `pharmaciesInBounds` on
+  region change, renders pharmacies as a **GeoJSON circle layer**, and on tap
+  opens a gorhom bottom-sheet callout (name · commune · distance) with a
+  "View details" button → `pharmacy/[id]`. End-to-end verified: tap → sheet →
+  detail screen with the correct Convex id.
+- **Phase 4 is not started** (on-duty list, detail screen content, polish).
 
 ---
 
@@ -122,6 +129,14 @@ stale — delete `~/.convex/anonymous-convex-backend-state/anonymous-pharmacy` a
 re-run (no real data to lose). `seed:seed` is idempotent (wipes then re-inserts)
 and recomputes the current Sat→Sat duty window each run.
 
+**Running the app against the local backend on a device/emulator:** the app
+reads `EXPO_PUBLIC_CONVEX_URL` (in `.env.local`, set to `http://127.0.0.1:3210`)
+at bundle time — restart Metro with `--clear` after changing it. The device
+reaches the host backend via **`adb reverse tcp:3210 tcp:3210`** (and
+`tcp:3211`). These reverses are cleared whenever the device drops offline, so
+re-run them after any disconnect. Verified flow: tap a pharmacy circle → callout
+→ View details → detail screen.
+
 ---
 
 ## Gotchas already solved (don't relearn these)
@@ -130,6 +145,16 @@ and recomputes the current Sat→Sat duty window each run.
   **`mapStyle`** (not `styleURL`), and `Camera` takes
   **`initialViewState={{ center: [lng, lat], zoom }}`** (not
   `centerCoordinate` / `zoomLevel`). Coords are **[lng, lat]** order.
+- **MapLibre v11 layer styling uses `paint`/`layout`, not `style`.** A
+  `<Layer type="circle" style={{ circleRadius… }}>` (camelCase, the old API)
+  silently renders nothing on v11 — it only logs a deprecation warning. Use
+  `paint={{ 'circle-radius': … }}` with GL-spec kebab-case keys. Markers are
+  rendered as a **GeoJSON source + circle Layer**, not per-pin `<Marker>` views
+  (those were unreliable here on the new architecture).
+- **Sparse seed + zoom 14 looks empty.** Seed pharmacies are ~1/commune (km
+  apart); at zoom 14 (~1.5 km viewport) the location-denied Abidjan-center
+  fallback often shows no pin until you pan (bounds fill) or are near one.
+  Not a bug. On the emulator, set a location with `adb emu geo fix <lng> <lat>`.
 - **gorhom bottom sheet** needs the app wrapped in `GestureHandlerRootView`
   (done in `src/app/_layout.tsx`) and reanimated — reanimated **v4 needs no
   Babel/config plugin**, so none was added.
