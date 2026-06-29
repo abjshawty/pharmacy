@@ -40,7 +40,7 @@ Phase 1 starts, `npx convex dev` initializes the deployment, writes
 - **Cannot run in Expo Go.** MapLibre and expo-location are native modules, so a
   dev build (`expo run:android`) is mandatory — Expo Go will not work.
 - **`android/` is gitignored** and must be regenerated with `expo prebuild` on
-  each machine. Prereqs (Bun, JDK 17, Android SDK/emulator) don't travel in git;
+  each machine. Prereqs (Bun, JDK 21, Android SDK/emulator) don't travel in git;
   see HANDOFF.md.
 - **Read the exact Expo v56 docs** (https://docs.expo.dev/versions/v56.0.0/)
   before writing Expo code — the API changed across versions (this is the

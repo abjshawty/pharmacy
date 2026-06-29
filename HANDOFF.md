@@ -59,16 +59,19 @@ committed**.
 
 Prereqs to install first (none of these travel in git):
 - **Bun** (package manager / scripts)
-- **JDK 17 is required, not just "blessed".** RN's Gradle plugin forces a
-  Java-17 toolchain (`jvmToolchain(17)`). If *only* JDK 21 is installed, Gradle
-  9.3.1 tries to auto-download a 17 via the bundled Foojay resolver (v0.5.0),
-  which references `JvmVendorSpec.IBM_SEMERU` — a constant Gradle 9.3 removed —
-  and the build dies with `NoSuchFieldError`. **Fix:** install a JDK 17 (e.g.
-  `winget install EclipseAdoptium.Temurin.17.JDK`) so Gradle finds it locally and
-  never invokes the broken downloader. You can still run the daemon on JDK 21;
-  pin the 17 for the toolchain in your **global** `~/.gradle/gradle.properties`
-  (survives `expo prebuild --clean`, unlike `android/`):
-  `org.gradle.java.installations.paths=C:\\Program Files\\Eclipse Adoptium\\jdk-17...`
+- **JDK 21 — the whole build now compiles with Java 21.** RN's Gradle plugin
+  otherwise forces a Java-17 toolchain (`jvmToolchain(17)`) on every module, and
+  with *only* JDK 21 installed Gradle 9.3.1 tries to auto-download a 17 via the
+  bundled Foojay resolver (v0.5.0), which references `JvmVendorSpec.IBM_SEMERU` —
+  a constant Gradle 9.3 removed — so the build dies with `NoSuchFieldError`.
+  **Fix (current setup):** the `plugins/withJava21.js` config plugin sets
+  `react.internal.disableJavaVersionAlignment=true` and re-aligns every module to
+  Java 21 (compileOptions + `jvmToolchain(21)`). Since the daemon runs on JDK 21,
+  the 21 toolchain resolves to the running JDK — the broken downloader is never
+  invoked and no JDK 17 is needed. Set `JAVA_HOME` to your JDK 21 (e.g.
+  `C:\Program Files\Zulu\zulu-21`); the plugin reproduces the Gradle changes on
+  every `expo prebuild` (they live in app.json's plugin list, not gitignored
+  `android/`).
 - **Android SDK** with: `platform-tools`, `platforms;android-36`,
   `build-tools;36.0.0`, **`ndk;27.1.12297006`**, **`cmake;3.22.1`** (the NDK +
   CMake are needed because `newArchEnabled=true` compiles native C++ from

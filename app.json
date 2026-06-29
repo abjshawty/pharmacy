@@ -29,6 +29,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withJava21",
       "expo-router",
       "expo-dev-client",
       "@maplibre/maplibre-react-native",
