@@ -15,8 +15,13 @@ committed**.
 - **Phase 0 is COMPLETE.** The MapLibre map was **verified rendering on a
   physical device** (OpenFreeMap tiles, Abidjan at zoom 14, Map/On-Duty tabs) on
   2026-06-17. The Android tooling that blocked this is now set up (see below).
-- **Phases 1–4 are not started.** Convex backend is **not initialized** (no
-  `convex/` folder, no schema).
+- **Phase 1 (data model) is COMPLETE.** Convex is initialized as a **local
+  anonymous deployment** (`anonymous:anonymous-pharmacy` @ `127.0.0.1:3210`, no
+  cloud login). `convex/schema.ts` (pharmacies + dutyShifts) is pushed and
+  `convex/seed.ts` populated **17 pharmacies across 11 communes + 11 duty
+  shifts** for the current Sat→Sat window. `tsc` clean. These are uncommitted
+  working-tree changes.
+- **Phases 2–4 are not started** (queries, location wiring, on-duty view).
 
 ---
 
@@ -93,11 +98,22 @@ Expected: a street map of Abidjan (Cocody/Plateau area) at zoom 14.
 If blank → check Metro logs + device logcat for tile-load errors against
 `https://tiles.openfreemap.org/styles/liberty`.
 
-### Convex (Phase 1, when you get there)
-`convex/` and `.env.local` are **not** in the repo (`.env.local` is gitignored).
-On the new machine run `npx convex dev` to create a deployment; it writes
-`CONVEX_DEPLOYMENT` + `CONVEX_URL` into `.env.local` and creates `convex/`.
-The schema to drop into `convex/schema.ts` is in PLAN.md (Phase 1).
+### Convex (Phase 1 — done, runs locally)
+`convex/` (schema, seed, `_generated`) **is** committed; `.env.local` is **not**
+(gitignored — it holds `CONVEX_DEPLOYMENT=anonymous:anonymous-pharmacy`,
+`CONVEX_URL=http://127.0.0.1:3210`, and the local admin key). The deployment is
+**local + anonymous** — no Convex account needed. On a fresh machine the
+`.env.local`/local backend state under `~/.convex` won't exist, so re-init:
+```bash
+bunx convex dev --once     # recreates the local anonymous deployment + pushes schema
+bunx convex run seed:seed  # repopulate 17 pharmacies + 11 duty shifts
+```
+For day-to-day work run `bunx convex dev` (long-running) alongside Metro so the
+app can query the backend. If the local backend ever fails to start with
+`Cannot read properties of undefined (reading 'toString')`, the cached state is
+stale — delete `~/.convex/anonymous-convex-backend-state/anonymous-pharmacy` and
+re-run (no real data to lose). `seed:seed` is idempotent (wipes then re-inserts)
+and recomputes the current Sat→Sat duty window each run.
 
 ---
 
