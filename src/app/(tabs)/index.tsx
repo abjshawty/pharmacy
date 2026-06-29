@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import {
   Camera,
@@ -6,6 +7,7 @@ import {
   Map as MapLibreMap,
   UserLocation,
   type PressEventWithFeatures,
+  type TrackUserLocation,
   type ViewStateChangeEvent,
 } from '@maplibre/maplibre-react-native';
 import { useQuery } from 'convex/react';
@@ -38,6 +40,8 @@ export default function MapScreen() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { origin, hasLocation } = useUserLocation();
+  // Camera follow mode: "default" follows the user; cleared when they pan away.
+  const [tracking, setTracking] = useState<TrackUserLocation | undefined>(undefined);
   const [bounds, setBounds] = useState<{
     minLat: number;
     maxLat: number;
@@ -45,6 +49,11 @@ export default function MapScreen() {
     maxLng: number;
   } | null>(null);
   const [selected, setSelected] = useState<Pharmacy | null>(null);
+
+  // Start following once we have a real fix (not the Abidjan fallback).
+  useEffect(() => {
+    if (hasLocation) setTracking('default');
+  }, [hasLocation]);
 
   // Priority load: the 20 nearest to the user (or fallback) center.
   const nearest = useQuery(
@@ -134,8 +143,14 @@ export default function MapScreen() {
         mapStyle={STYLE_URL}
         onPress={dismiss}
         onRegionDidChange={handleRegionDidChange}>
-        <Camera initialViewState={{ center: origin, zoom: 14 }} />
-        {hasLocation && <UserLocation />}
+        <Camera
+          initialViewState={{ center: origin, zoom: 14 }}
+          trackUserLocation={tracking}
+          onTrackUserLocationChange={(e) =>
+            setTracking(e.nativeEvent.trackUserLocation ?? undefined)
+          }
+        />
+        {hasLocation && <UserLocation animated />}
         <GeoJSONSource id="pharmacies" data={featureCollection} onPress={handleSourcePress}>
           <Layer
             id="pharmacy-circles"
@@ -149,6 +164,15 @@ export default function MapScreen() {
           />
         </GeoJSONSource>
       </MapLibreMap>
+
+      {hasLocation && !tracking ? (
+        <Pressable
+          style={styles.recenter}
+          onPress={() => setTracking('default')}
+          accessibilityLabel="Recenter on my location">
+          <Ionicons name="locate" size={22} color="#208AEF" />
+        </Pressable>
+      ) : null}
 
       <BottomSheet
         ref={sheetRef}
@@ -187,6 +211,22 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { alignItems: 'center', justifyContent: 'center' },
   map: { flex: 1 },
+  recenter: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
   sheet: { flex: 1, paddingHorizontal: 20, paddingTop: 8, gap: 6 },
   name: { fontSize: 18, fontWeight: '600' },
   meta: { fontSize: 14, color: '#60646C' },
