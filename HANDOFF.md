@@ -35,7 +35,18 @@ committed**.
   opens a gorhom bottom-sheet callout (name · commune · distance) with a
   "View details" button → `pharmacy/[id]`. End-to-end verified: tap → sheet →
   detail screen with the correct Convex id.
-- **Phase 4 is not started** (on-duty list, detail screen content, polish).
+- **Phase 4 (on-duty + detail) is COMPLETE and verified on an emulator.**
+  On-duty tab (`(tabs)/on-duty.tsx`) lists `onDutyNow()` sorted by distance
+  (name · commune · distance · phone, per-row Call, spinner while loading,
+  SAMU `tel:143` empty state). Detail screen (`pharmacy/[id].tsx`) shows the
+  on-duty badge + duty pharmacist name, address/hours, and Call (`tel:` via
+  `toDialable` → `+225`) + Directions (`geo:`) buttons. Location logic is now a
+  shared `useUserLocation` hook (`src/hooks/`) and `src/lib/geo.ts`. Verified:
+  list sorts by distance, Call opens the dialer with the +225 number.
+
+**The POC is feature-complete (Phases 0–4).** Remaining work is real data
+(scraper → replace the seed) and any post-POC items in PLAN.md's "Deferred"
+section.
 
 ---
 

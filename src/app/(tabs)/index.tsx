@@ -9,7 +9,6 @@ import {
   type ViewStateChangeEvent,
 } from '@maplibre/maplibre-react-native';
 import { useQuery } from 'convex/react';
-import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -23,27 +22,14 @@ import {
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc } from '../../../convex/_generated/dataModel';
+import { useUserLocation } from '@/hooks/use-user-location';
 import { formatDistance } from '@/lib/format';
+import { haversineMeters } from '@/lib/geo';
 
-// [lng, lat] — MapLibre coordinate order. Fallback when location is denied.
-const ABIDJAN_CENTER: [number, number] = [-4.0083, 5.3599];
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 const REGION_DEBOUNCE_MS = 300;
 
 type Pharmacy = Doc<'pharmacies'>;
-
-// Great-circle distance in metres, for displaying the selected pharmacy's
-// distance from the user (the server sorts; this is display-only).
-function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6_371_000;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
 
 export default function MapScreen() {
   const router = useRouter();
@@ -51,9 +37,7 @@ export default function MapScreen() {
   const snapPoints = useMemo(() => ['28%'], []);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // null while we resolve location; then either the user's position or the fallback.
-  const [origin, setOrigin] = useState<[number, number] | null>(null);
-  const [hasLocation, setHasLocation] = useState(false);
+  const { origin, hasLocation } = useUserLocation();
   const [bounds, setBounds] = useState<{
     minLat: number;
     maxLat: number;
@@ -61,43 +45,6 @@ export default function MapScreen() {
     maxLng: number;
   } | null>(null);
   const [selected, setSelected] = useState<Pharmacy | null>(null);
-
-  // Foreground location → center on the user; on denial/error/slow-fix fall back
-  // to Abidjan. Never block the map on a GPS fix: a timeout guarantees `origin`
-  // resolves so we don't sit on the spinner forever.
-  useEffect(() => {
-    let cancelled = false;
-    const fallback = () => {
-      if (!cancelled) setOrigin((current) => current ?? ABIDJAN_CENTER);
-    };
-    const timer = setTimeout(fallback, 5000);
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos =
-            (await Location.getLastKnownPositionAsync()) ??
-            (await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.Balanced,
-            }));
-          if (!cancelled && pos) {
-            clearTimeout(timer);
-            setOrigin([pos.coords.longitude, pos.coords.latitude]);
-            setHasLocation(true);
-            return;
-          }
-        }
-      } catch {
-        // fall through to the fallback center
-      }
-      clearTimeout(timer);
-      fallback();
-    })();
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, []);
 
   // Priority load: the 20 nearest to the user (or fallback) center.
   const nearest = useQuery(

@@ -38,6 +38,12 @@ export const nearestPharmacies = query({
   },
 });
 
+// Single pharmacy by id, for the detail screen.
+export const get = query({
+  args: { id: v.id("pharmacies") },
+  handler: async (ctx, { id }) => ctx.db.get(id),
+});
+
 // Progressive fill as the user pans/zooms. The client debounces region-change
 // (300ms) and refetches for the new viewport. Range-scans the by_lat index for
 // the latitude band, then filters longitude in memory.
